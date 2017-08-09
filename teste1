@@ -1,0 +1,24 @@
+import ast
+import __future__
+pfcf = __future__.print_function.compiler_flag
+
+from ast import dump, PyCF_ONLY_AST
+lista = []
+class MyVisitorString(ast.NodeVisitor):
+    def visit_Str(self, node):
+        lista.append(node.s)
+
+class MyTransformerString(ast.NodeTransformer):
+    def visit_Str(self, node):
+        return ast.Str(node.s)
+
+def d(s):
+    print len(dump(compile(ast.parse(s), '<String>', 'exec', pfcf|PyCF_ONLY_AST)))
+    print dump(compile(ast.parse(s), '<String>', 'exec', pfcf|PyCF_ONLY_AST))
+    b = compile(ast.parse(s).body[0], '<String>', 'exec', pfcf|PyCF_ONLY_AST)
+    d = ast.parse('''print('hello world')''')
+    MyTransformerString().visit(d)
+    MyVisitorString().visit(d)
+    print(lista)
+s = 'print(len("hello world"))'
+d(s)
