@@ -1,16 +1,26 @@
 import ast
 import __future__
+import tokenize
+import StringIO
 pfcf = __future__.print_function.compiler_flag
 
 from ast import dump, PyCF_ONLY_AST
 
+# Tratando comentarios 
+lineNumber = 0 
+comentarios = []
+linhas_comentarios = []
+
+# Tratando o resto
 listaNomeVariaveis = []
 listaValores = []
 listaPrint = []
 listaNomesFuncoes = []
 
+
 class MyVisitorNameDef(ast.NodeVisitor):
     def visit_FunctionDef(self, node):
+        print node.lineno # numero da linha
         listaNomesFuncoes.append(node.name)
 
 class MyTransformerNameDef(ast.NodeTransformer):
@@ -50,6 +60,15 @@ class MyTransformerName(ast.NodeTransformer):
     def visit_Name(self, node):
         print(node.id)
         return ast.Name(node.id, self)
+        
+def extract(code):
+    comment = None
+    stringio = StringIO.StringIO(code)
+    # pass in stringio.readline to generate_tokens
+    for toktype, tokval, begin, end, line in tokenize.generate_tokens(stringio.readline):
+        if toktype == tokenize.COMMENT:
+          comentarios.append(tokenize.untokenize([(toktype, tokval)]))
+          linhas_comentarios.append(lineNumber)
 
 def d(s):
     print len(dump(compile(ast.parse(s), '<String>', 'exec', pfcf|PyCF_ONLY_AST)))
@@ -67,6 +86,13 @@ z = 1777
 ''')
     print "NADA AQUI"
 
+    for line in s.split('\n'):
+      extract(line)
+      global lineNumber 
+      lineNumber += 1
+    print comentarios
+    print linhas_comentarios
+      
 
     module = ast.parse(s)
 
@@ -79,6 +105,7 @@ z = 1777
 
     function_definitions = [node for node in module.body[0].body if isinstance(node, ast.Assign)]
     for i in range(len(function_definitions)):
+      
         MyTransformerString().visit(function_definitions[i])
         MyVisitorString().visit(function_definitions[i])
 
@@ -107,7 +134,7 @@ def testes(awkkoawkoaw): # Isso aqui e coments
     print z+m
     print 'BIN OP NAO FUNFANDO'
     print 'AQUI E UM PRINT'
-    return [10,20,30,40]
+    return [10,20,30,40] # AQUI E UM OUTRO 
 def testes2():
     x = 'MatheusCoutinho'
     return x
