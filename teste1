@@ -1,3 +1,4 @@
+
 import ast
 import __future__
 import tokenize
@@ -6,10 +7,11 @@ pfcf = __future__.print_function.compiler_flag
 
 from ast import dump, PyCF_ONLY_AST
 
-# Tratando comentarios 
+# Tratando comentarios e linhas em branco
 lineNumber = 0 
 comentarios = []
 linhas_comentarios = []
+linhas_branco = []
 
 # Tratando o resto
 listaNomeVariaveis = []
@@ -59,12 +61,12 @@ class MyVisitorName(ast.NodeVisitor):
 class MyTransformerName(ast.NodeTransformer):
     def visit_Name(self, node):
         print(node.id)
-        return ast.Name(node.id, self)
+        return ast  .Name(node.id, self)
         
 def extract(code):
     comment = None
     stringio = StringIO.StringIO(code)
-    # pass in stringio.readline to generate_tokens
+    # pass in string  io.readline to generate_tokens
     for toktype, tokval, begin, end, line in tokenize.generate_tokens(stringio.readline):
         if toktype == tokenize.COMMENT:
           comentarios.append(tokenize.untokenize([(toktype, tokval)]))
@@ -87,11 +89,16 @@ z = 1777
     print "NADA AQUI"
 
     for line in s.split('\n'):
-      extract(line)
+      if len(line.strip()) == 0:
+        linhas_branco.append(lineNumber)
+      else:
+        extract(line)
       global lineNumber 
       lineNumber += 1
+    
     print comentarios
     print linhas_comentarios
+    print linhas_branco
       
 
     module = ast.parse(s)
@@ -128,12 +135,16 @@ z = 1777
 s = '''
 def testes(awkkoawkoaw): # Isso aqui e coments
     # ISSO AQUI E COMENTS
+    
     x = 'AKOWAWOKOKA' # wkaookawokwaok
     z = 10.5
     m = 15
+    # AQUI E COMENTS SEM NADA
     print z+m
     print 'BIN OP NAO FUNFANDO'
     print 'AQUI E UM PRINT'
+    
+    
     return [10,20,30,40] # AQUI E UM OUTRO 
 def testes2():
     x = 'MatheusCoutinho'
