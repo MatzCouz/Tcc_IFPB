@@ -1,3 +1,12 @@
+#DEF -> nome e parametros de cada... 100%
+#Linhas em branco e comentarios... 100%
+#Variaveis -> Falta o binOp e outras coisas
+#Imports ???
+#tratar listas... miss!
+#Posicao na linha de cada um...100%...Falta testar!
+#Determinar em que cada elemento esta nas funcoes -> Buscar maneira melhor que listas simples
+
+#Melhorar esse codigo lixo, deixar com melhor desempenho, talvez O(nlogn)
 
 import ast
 import __future__
@@ -17,8 +26,20 @@ linhas_branco = []
 listaNomeVariaveis = []
 listaValores = []
 listaPrint = []
-listaNomesFuncoes = []
 
+# Tratando o def
+auxFunctions = 0
+listaNomesFuncoes = []
+listaVarsFuncoes = []
+
+class MyVisitorVars(ast.NodeVisitor):
+    def visit_Name(self, node):
+        listaVarsFuncoes[auxFunctions].append(node.id)
+
+class MyTransformerVars(ast.NodeTransformer):
+    def visit_Name(self, node):
+        print(node.id)
+        return ast.Name(node.id, self)
 
 class MyVisitorNameDef(ast.NodeVisitor):
     def visit_FunctionDef(self, node):
@@ -61,7 +82,7 @@ class MyVisitorName(ast.NodeVisitor):
 class MyTransformerName(ast.NodeTransformer):
     def visit_Name(self, node):
         print(node.id)
-        return ast  .Name(node.id, self)
+        return ast.Name(node.id, self)
         
 def extract(code):
     comment = None
@@ -102,13 +123,25 @@ z = 1777
       
 
     module = ast.parse(s)
-
     name_definitions = [node for node in module.body]
+    
     for i in range(len(name_definitions)):
+        
+        listaVarsFuncoes.append([])
+        
         MyTransformerNameDef().visit(name_definitions[i])
         MyVisitorNameDef().visit(name_definitions[i])
+        
+        MyTransformerVars().visit(name_definitions[i].args)
+        MyVisitorVars().visit(name_definitions[i].args)
+        
+        global auxFunctions
+        auxFunctions+=1
+        
     print "LISTA NOMES FUNCOES"
     print listaNomesFuncoes
+    print 'AQUI SAO AS VARS'
+    print listaVarsFuncoes
 
     function_definitions = [node for node in module.body[0].body if isinstance(node, ast.Assign)]
     for i in range(len(function_definitions)):
@@ -133,13 +166,16 @@ z = 1777
     print listaValores
 
 s = '''
-def testes(awkkoawkoaw): # Isso aqui e coments
+def testes(param1, param2): # Isso aqui e coments
     # ISSO AQUI E COMENTS
     
     x = 'AKOWAWOKOKA' # wkaookawokwaok
     z = 10.5
+    z = 20
+    z = 30
     m = 15
     # AQUI E COMENTS SEM NADA
+
     print z+m
     print 'BIN OP NAO FUNFANDO'
     print 'AQUI E UM PRINT'
