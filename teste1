@@ -1,9 +1,9 @@
 # DEF -> nome e parametros de cada... 100%
 # Linhas em branco e comentarios... 100%
-# Variaveis... 100%
+# Variaveis -> Falta o binOp e outras coisas
 # Imports ???
 # tratar listas... miss!
-# Posicao na linha de cada um...100%
+# Posicao na linha de cada um...100%...Falta testar!
 # Determinar em que cada elemento esta nas funcoes -> Buscar maneira melhor que listas simples
 
 # Melhorar esse codigo lixo, deixar com melhor desempenho, talvez O(nlogn)
