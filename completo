@@ -1,0 +1,456 @@
+# DEF -> nome e parametros de cada... 100%
+# Linhas em branco e comentarios... 100%
+# Atributos... 100%
+# Comentarios nos metodos das classes... 100%
+# Comentarios nos metodos do body... 100%
+# Comentarios nas classes... 100%
+# Comentarios so no corpo... 100%
+# Comentarios na classe... 100%
+# Comentarios nos metodos... 100%
+
+#Bugs:
+    # Comentarios na ultima linha de qualquer elemento ficam perdidos(Nao sabem a quem pertence)
+
+import ast
+import __future__
+import tokenize
+import StringIO
+
+pfcf = __future__.print_function.compiler_flag
+
+from ast import dump, PyCF_ONLY_AST
+
+# Tratando classes
+listaClasses = []
+arquivo = open('arquivoTest3.txt', 'w')
+dentroDoMetodoDaClasse = True
+
+# Tratando comentarios e linhas em branco
+lineNumber = 0
+comentarios = []
+linhas_comentarios = []
+linhas_branco = []
+
+# Tratando o resto
+auxVars = 0
+listaNomeVariaveis = []
+listaValores = []
+listaPrint = []
+listaNumLine = []
+
+# Tratando o def
+auxFunctions = 0
+listaNomesFuncoes = []
+listaVarsFuncoes = []
+
+
+class MyVisitorVars(ast.NodeVisitor):
+    def visit_Name(self, node):
+        listaVarsFuncoes[auxFunctions].append(node.id)
+        arquivo.write("         <param name=\""+node.id+"\""" />\n")
+
+
+class MyTransformerVars(ast.NodeTransformer):
+    def visit_Name(self, node):
+        return ast.Name(node.id, self)
+
+
+class MyVisitorNameDef(ast.NodeVisitor):
+    def visit_FunctionDef(self, node):
+        listaNomesFuncoes.append(node.name)
+        arquivo.write("     <math name=\""+node.name+"\""">\n")
+
+
+class MyTransformerNameDef(ast.NodeTransformer):
+    def visit_FunctionDef(self, node):
+        return ast.FunctionDef()
+
+
+class MyVisitorPrint(ast.NodeVisitor):
+    def visit_Str(self, node):
+        listaPrint.append(node.s)
+
+
+class MyTransformerPrint(ast.NodeTransformer):
+    def visit_Str(self, node):
+        return ast.Str(node.s)
+
+
+class MyVisitorString(ast.NodeVisitor):
+    def visit_Str(self, node):
+        listaValores[auxVars].append(node.s)
+
+
+class MyTransformerString(ast.NodeTransformer):
+    def visit_Str(self, node):
+        return ast.Str(node.s)
+
+
+class MyVisitorNum(ast.NodeVisitor):
+    def visit_Num(self, node):
+        listaValores[auxVars].append(node.n)
+
+
+
+class MyTransformerNum(ast.NodeTransformer):
+    def visit_Num(self, node):
+        return ast.Num(node.n)
+
+
+class MyVisitorName(ast.NodeVisitor):
+    def visit_Name(self, node):
+        listaNomeVariaveis.append(node.id)
+        correctingPositions(node)
+
+
+class MyTransformerName(ast.NodeTransformer):
+    def visit_Name(self, node):
+        return ast.Name(node.id, self)
+
+class MyVisitorNameIf(ast.NodeVisitor):
+    def visit_Name(self, node):
+        listaNomeVariaveis.append(node.id)
+        if(dentroDoMetodoDaClasse):
+            arquivo.write("         <field name=\""+node.id+"\""" />\n")
+        else:
+            arquivo.write("     <field name=\""+node.id+"\""" />\n")
+
+
+
+
+class MyTransformerNameIf(ast.NodeTransformer):
+    def visit_Name(self, node):
+        return ast.Name(node.id, self)
+
+def IfInIfCatch(node):
+    if isinstance(node, ast.If):
+        IfinIf(node)
+    if isinstance(node, ast.While):
+        ForInFor(node)
+    if isinstance(node, ast.For):
+        ForInFor(node)
+    listaValores.append([])
+    MyTransformerNameIf().visit(node)
+    MyVisitorNameIf().visit(node)
+    global auxVars
+    auxVars += 1
+
+def IfinIf(nodeCatch):
+    nodes = [node for node in nodeCatch.body]
+    for i in range(len(nodes)):
+        IfInIfCatch(nodes[i])
+
+def ForAndWhileCatch(node):
+    if isinstance(node, ast.For):
+        ForInFor(node)
+    if isinstance(node, ast.While):
+        ForInFor(node)
+    if isinstance(node ,ast.If):
+        IfinIf(node)
+    listaValores.append([])
+    MyTransformerName().visit(node)
+    MyVisitorName().visit(node)
+    global auxVars
+    auxVars += 1
+
+
+def ForInFor(nodeCatch):
+    nodes = [node for node in nodeCatch.body]
+    for i in range(len(nodes)):
+        ForAndWhileCatch(nodes[i])
+
+def extract(code):
+    stringio = StringIO.StringIO(code)
+    for toktype, tokval, begin, end, line in tokenize.generate_tokens(stringio.readline):
+        if toktype == tokenize.COMMENT:
+            comentarios.append(tokenize.untokenize([(toktype, tokval)])[1:])
+            linhas_comentarios.append(lineNumber)
+
+
+def correctingPositions(node):
+    if len(listaNomeVariaveis) > len(listaValores):
+        listaValores[auxVars].append(node.id)
+        listaNomeVariaveis.pop()
+    else:
+        if(dentroDoMetodoDaClasse):
+            arquivo.write("         <field name=\""+node.id+"\""" />\n")
+        else:
+            arquivo.write("     <field name=\""+node.id+"\""" />\n")
+
+
+def comentsDefinition(superior, inferior):
+    comentariosDefinidos = []
+    for i in range(len(linhas_comentarios)-1,-1,-1):
+        if superior <= linhas_comentarios[i]+1 and inferior >= linhas_comentarios[i]+1:
+            comentariosDefinidos.append(comentarios[i])
+            comentarios.pop(i)
+            linhas_comentarios.pop(i)
+
+    for i in range(len(comentariosDefinidos)):
+        if(dentroDoMetodoDaClasse):
+            arquivo.write("         <cmtt name=\""+comentariosDefinidos[i]+"\""" />\n")
+        else:
+            arquivo.write("     <cmtt name=\""+comentariosDefinidos[i]+"\""" />\n")
+def d(s):
+
+    for line in s.split('\n'):
+        if len(line.strip()) == 0:
+            linhas_branco.append(lineNumber)
+        else:
+            extract(line)
+        global lineNumber
+        lineNumber += 1
+
+    print comentarios
+    print linhas_comentarios
+    print linhas_branco
+
+    module = ast.parse(s)
+    name_definitions = [node for node in module.body if isinstance(node, ast.FunctionDef)]
+    classes_definitions = [node for node in module.body if isinstance(node, ast.ClassDef)]
+    nodes_body = [node for node in module.body]
+    global dentroDoMetodoDaClasse
+    dentroDoMetodoDaClasse = False
+    for i in range(len(classes_definitions)):
+        arquivo.write("<class name=\""+classes_definitions[i].name+"\""">\n")
+        superiorClasse = classes_definitions[i].lineno
+        name_definitionss = [node for node in classes_definitions[i].body if isinstance(node, ast.FunctionDef)]
+        body_definitios = [node for node in classes_definitions[i].body]
+        for k in range(len(body_definitios)):
+            if isinstance(body_definitios[k], ast.Assign):
+                listaValores.append([])
+                listaNumLine.append(body_definitios[k].lineno)
+
+                MyTransformerString().visit(body_definitios[k])
+                MyVisitorString().visit(body_definitios[k])
+
+                MyTransformerNum().visit(body_definitios[k])
+                MyVisitorNum().visit(body_definitios[k])
+
+                MyTransformerName().visit(body_definitios[k])
+                MyVisitorName().visit(body_definitios[k])
+
+                global auxVars
+                auxVars += 1
+            if isinstance(body_definitios[k], ast.If):
+                IfinIf(body_definitios[k])
+            if isinstance(body_definitios[k], ast.While):
+                ForAndWhileCatch(body_definitios[k])
+            if isinstance(body_definitios[k], ast.For):
+                ForAndWhileCatch(body_definitios[k])
+        for k in range(len(name_definitionss)):
+            superior = name_definitionss[k].lineno
+            listaVarsFuncoes.append([])
+
+            MyTransformerNameDef().visit(name_definitionss[k])
+            MyVisitorNameDef().visit(name_definitionss[k])
+
+            MyTransformerVars().visit(name_definitionss[k].args)
+            MyVisitorVars().visit(name_definitionss[k].args)
+
+            global auxFunctions
+            auxFunctions += 1
+
+            nodes = [node for node in name_definitionss[k].body]
+            global dentroDoMetodoDaClasse
+            dentroDoMetodoDaClasse = True
+            for i in range(len(nodes)):
+                inferior = 0
+                if isinstance(nodes[i], ast.Assign):
+                    listaValores.append([])
+                    listaNumLine.append(nodes[i].lineno)
+
+                    MyTransformerString().visit(nodes[i])
+                    MyVisitorString().visit(nodes[i])
+
+                    MyTransformerNum().visit(nodes[i])
+                    MyVisitorNum().visit(nodes[i])
+
+                    MyTransformerName().visit(nodes[i])
+                    MyVisitorName().visit(nodes[i])
+
+                    global auxVars
+                    auxVars += 1
+                if i == len(nodes)-1:
+                    inferior = nodes[i].lineno
+            print inferior, superior
+            comentsDefinition(superior, inferior)
+            arquivo.write("     </math>\n")
+        if i == len(nodes)-1:
+            inferiorClasse = nodes[i].lineno
+        global dentroDoMetodoDaClasse
+        dentroDoMetodoDaClasse = False
+        comentsDefinition(superiorClasse, inferiorClasse)
+        arquivo.write("</class>\n")
+
+
+    global dentroDoMetodoDaClasse
+    dentroDoMetodoDaClasse = False
+    arquivo.write("<class name=\"body\">\n")
+    for i in range(len(nodes_body)):
+        if isinstance(nodes_body[i], ast.Assign):
+            listaValores.append([])
+            listaNumLine.append(nodes_body[i].lineno)
+
+            MyTransformerString().visit(nodes_body[i])
+            MyVisitorString().visit(nodes_body[i])
+
+            MyTransformerNum().visit(nodes_body[i])
+            MyVisitorNum().visit(nodes_body[i])
+
+            MyTransformerName().visit(nodes_body[i])
+            MyVisitorName().visit(nodes_body[i])
+
+            global auxVars
+            auxVars += 1
+        if isinstance(nodes_body[i], ast.If):
+            IfinIf(nodes_body[i])
+        if isinstance(nodes_body[i], ast.While):
+            ForAndWhileCatch(nodes_body[i])
+        if isinstance(nodes_body[i], ast.For):
+            ForAndWhileCatch(nodes_body[i])
+
+    for i in range(len(name_definitions)):
+        listaVarsFuncoes.append([])
+        MyTransformerNameDef().visit(name_definitions[i])
+        MyVisitorNameDef().visit(name_definitions[i])
+        MyTransformerVars().visit(name_definitions[i].args)
+        MyVisitorVars().visit(name_definitions[i].args)
+        global auxFunctions
+        auxFunctions += 1
+
+        nodes = [node for node in name_definitions[i].body]
+        inferior = 0
+        superior = name_definitions[i].lineno
+        for k in range(len(nodes)):
+            if isinstance(nodes[k], ast.Assign):
+               global dentroDoMetodoDaClasse
+               dentroDoMetodoDaClasse = True
+
+               listaValores.append([])
+               listaNumLine.append(nodes[k].lineno)
+
+               MyTransformerString().visit(nodes[k])
+               MyVisitorString().visit(nodes[k])
+
+               MyTransformerNum().visit(nodes[k])
+               MyVisitorNum().visit(nodes[k])
+
+               MyTransformerName().visit(nodes[k])
+               MyVisitorName().visit(nodes[k])
+
+               global auxVars
+               auxVars += 1
+            if isinstance(nodes[k], ast.For):
+               ForAndWhileCatch(nodes[k])
+            if isinstance(nodes[k], ast.While):
+               ForAndWhileCatch(nodes[k])
+
+            if isinstance(nodes[k], ast.If):
+               IfInIfCatch(nodes[k])
+
+            if k == len(nodes)-1:
+                inferior = nodes[k].lineno
+        comentsDefinition(superior, inferior)
+        arquivo.write("     </math>\n")
+
+    for i in range(len(comentarios)-1,-1,-1):
+        print comentarios[i]
+        arquivo.write("     <cmtt name=\""+comentarios[i]+"\""" />\n")
+        comentarios.pop(i)
+
+    arquivo.write("</class>")
+
+
+s = '''   
+kwaokow = 10
+while(True):
+    wkaokoawww = 100
+class Calculadora(): #TestHeadCalculadora
+    #TestCalculadora
+    WAKOKWO = 10
+    def __init__():
+    #testeInit
+        x = 10
+        y = 20    
+    def soma(self, a, b): #testSomaDef
+        #testSomaBody
+        return a + b
+    def subtracao(self, a, b):
+        return a - b
+    def multiplicacao(self, a, b):
+        return a*b
+    def divisao(self, a, b):
+        v = "lalal"
+        return a/b
+class Testes(): #TestTestesss
+    def unit(): #TestUnit
+        #Test123
+        print 'kowokaw'
+print 'waokwako'
+#testBody
+def testes(param1, param2): # Isso aqui e coments
+    # ISSO AQUI E COMENTS
+
+    x = 'AKOWAWOKOKA' # wkaookawokwaok
+    for i in range(10):
+        testeFor += i
+        for j in range(15):
+            testeForInFor = 10
+            for k in range(20):
+                testeForInForInFor = 30
+                for l in range(20):
+                    testeForInForInForInFor = 50
+    
+    while(True):
+        testeWhile += 1
+        while(x!=5):
+            while(True):
+                if x > 10:
+                    testeIfWhile = 10
+                for i in range(10):
+                    forDentroWhile = true
+                while(z>5):
+                    while4x = 10
+                while3x = 20
+            while2x = 10
+        while1x = 20
+        
+    valorBooleanVerdade = True
+    valorBooleanFalse = False
+    z = 10.5
+    z = 20
+    z = 30
+    m = 15
+    if iftestando == 15 or iftestando2 == 20:
+        x = 10
+        dentroaquidoif = 50
+        if testeIfDentroDoIf == 10:
+            testeDentrodoIfDentrodoIf = 10
+    else:
+        dentroaquidoelse = 10
+    m = z+m
+    varLen = len('okwakoawko')
+    binop = str(10 + 5 + 10 + 20)
+    binopInt = int('15' + '20') + int('20' + '15')
+    binopExtreme = str(int(int('15' + 20) - int('15' + '20')))
+    varLista = [10,20,30]
+    varLista.append(50)
+    x = teste2()
+    # AQUI E COMENTS SEM NADA
+
+    print z+m
+    print 'BIN OP NAO FUNFANDO'
+    print 'AQUI E UM PRINT'
+
+
+    return [10,20,30,40] # AQUI E UM OUTRO 
+def testes2():
+    x = 'MatheusCoutinho'
+    return x
+#Comentario no principal
+y = 10
+for i in range(10):
+    forInBody = 100
+'''
+d(s)
